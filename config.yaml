@@ -1,0 +1,7 @@
+input_osm_file: "umh.osm"
+plot_route: "True"
+output_csv: "True"
+orig_lat: "38.27541519477508"
+orig_lon: "-0.6864046680390995"
+dest_lat: "38.27741622450133"
+dest_lon: "-0.6851376194660554"
