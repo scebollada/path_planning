@@ -7,7 +7,7 @@ import numpy as np
 import yaml
 import pandas as pd
 
-
+#Function to plot the path
 def plot_path(lat, long, origin_point, destination_point):
     """
     Given a list of latitudes and longitudes, origin
@@ -59,6 +59,7 @@ def plot_path(lat, long, origin_point, destination_point):
                           'zoom': 13})
     fig.show()
 
+#Function to generate a list of lines that follow the path
 def node_list_to_path(G, node_list):
     """
     Given a list of nodes, return a list of lines that together
@@ -109,65 +110,45 @@ def main():
         input_osm_file = param_list.get('input_osm_file')
         plot_route=bool(param_list.get('plot_route'))
         output_csv = bool(param_list.get('output_csv'))
-        orig_lat = float(param_list.get('orig_lat'))
-        orig_lon = float(param_list.get('orig_lon'))
-        dest_lat = float(param_list.get('dest_lat'))
-        dest_lon = float(param_list.get('dest_lon'))
+        (orig_lat, orig_lon) = eval(param_list.get('orig'))
+        (dest_lat, dest_lon) = eval(param_list.get('dest'))
+        csv_folder=param_list.get('csv_folder')
 
     except:
         print("Error getting params from config.YAML!...")
 
-    # ox.project_gdf(state).plot(fc='gray', ec='none')
-    # # Defining the map boundaries
-    # north, east, south, west = 33.798, -84.378, 33.763, -84.422
-    # # Downloading the map as a graph object
-    # G = ox.graph_from_bbox(north, south, east, west, network_type='drive')
-    filepath='osms/'+input_osm_file
+    #Load the .OSM file (nodes and edges)
+    filepath=input_osm_file
     G= ox.graph.graph_from_xml(filepath, bidirectional=True, simplify=False, retain_all=True)
     # Plotting the map graph
-    ox.plot_graph(G,bgcolor='white', node_color='blue',edge_color='gray')
+    # ox.plot_graph(G,bgcolor='white', node_color='blue',edge_color='gray')
 
-    # define origin and desination locations
-    # origin_point = (33.787201, -84.405076)
-    # destination_point = (33.764135, -84.394980)
+    # Load the origin and desination locations in GPS coordinates
     origin_point=(orig_lat, orig_lon)
     destination_point=(dest_lat, dest_lon)
 
-    # get the nearest nodes to the locations
-    # origin_node = ox.get_nearest_node(G, origin_point)
+    # Get the nearest nodes to the locations
     origin_node=ox.distance.nearest_nodes(G, X=origin_point[1], Y=origin_point[0], return_dist=False)
-    # destination_node = ox.get_nearest_node(G, destination_point)
     destination_node=ox.distance.nearest_nodes(G, X=destination_point[1], Y=destination_point[0], return_dist=False)
-    # # printing the closest node id to origin and destination points origin_node, destination_node
-    #
-    # (origin_node,destination_node)=(69425048, 2919090915)
+
     print('Origin node: ')
     print(origin_node)
     print('Destination node: ')
     print(destination_node)
-    #
+
+
     # Finding the optimal path
-    route = nx.shortest_path(G, origin_node, destination_node, weight='length')
-    # route = nx.dijkstra_path(G, origin_node, destination_node, weight='length') #Son lo mismo
+    route = nx.shortest_path(G, origin_node, destination_node, weight='length') #by default, it uses dijkstra
+    #Same result by using the dijkstra_path function
+    # route = nx.dijkstra_path(G, origin_node, destination_node, weight='length')
 
 
-    # getting coordinates of the nodes
-    # we will store the longitudes and latitudes in following list
-    # long = []
-    # lat = []
-    # for i in route:
-    #     point = G.nodes[i]
-    #     long.append(point['x'])
-    #     lat.append(point['y'])
-
-    # plot_path(lat, long, origin_point, destination_point)
-
-    # getting the list of coordinates from the path
-    # (which is a list of nodes)
+    # Getting coordinates of the nodes
     lines = node_list_to_path(G, route)
+    # we will store the longitudes and latitudes in following list
     long2 = []
     lat2 = []
-    datos=[]
+    data=[] # to store the GPS coordinates in a .csv file
     for i in range(len(lines)):
         z = list(lines[i])
         l1 = list(list(zip(*z))[0])
@@ -175,18 +156,18 @@ def main():
         for j in range(len(l1)):
             long2.append(l1[j])
             lat2.append(l2[j])
-            datos.append([lat2[j], long2[j]])
+            data.append([lat2[j], long2[j]])
 
-                          # print("Length of lat: ", len(lat))
-    # print("Length of lat2: ", len(lat2))
 
+    # Plot the roue on the open street map
     if plot_route:
         plot_path(lat2, long2, origin_point, destination_point)
 
+    #Save the GPs coordinates in a .csv file
     if output_csv:
-        d = pd.DataFrame(datos)
-        file_name = 'csv_routes/from_('+str(orig_lat)+' , '+str(orig_lon)+')_to_(' +str(dest_lat)+' , '+str(dest_lon)+')_.csv'
-        d.to_csv(file_name,header=['latitude', 'longitude'], index=False)
+        d = pd.DataFrame(data)
+        file_name = csv_folder+'from_('+str(orig_lat)+' , '+str(orig_lon)+')_to_(' +str(dest_lat)+' , '+str(dest_lon)+')_.csv'
+        d.to_csv(file_name, header=['latitude', 'longitude'], index=False)
 
 
 # Press the green button in the gutter to run the script.
